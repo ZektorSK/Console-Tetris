@@ -20,15 +20,20 @@ namespace Tetris
             string input = Console.ReadLine();
             Console.Clear();
 
-            InitiateRandomObject(map, randomObjects);
             int score = 0;
             while (input == "yes")
             {
                 ///TO DO LIST:
-                ///As a solution for not detecting blocks that are already in place: Replace the 0 symbols with O instead
+                ///When only one part of a object touches a nested object, the tail goes independently down, FIX IT!!!!!
+                ///
+                List<MapNode> objectsPosition = DetectPositionOfObjects(map);
+                if(objectsPosition.Count == 0)
+                {
+                    InitiateRandomObject(map, randomObjects);
+                }
                 ShowMap(map, score);
-                Thread.Sleep(1000);
-                map = AutomaticMovementOfTheObject(map);
+                Thread.Sleep(200);
+                map = AutomaticMovementOfTheObject(map, objectsPosition);
                 Console.Clear();
             }
         }
@@ -68,27 +73,48 @@ namespace Tetris
 
             return mapList;
         }
-        static List<MapNode> AutomaticMovementOfTheObject(List<MapNode> mapList)
+        static List<MapNode> AutomaticMovementOfTheObject(List<MapNode> mapList, List<MapNode> positionsOfObject)
         {
-            List<MapNode> positionsOfObject = mapList.Where(x => x.content == '0').ToList();
-            positionsOfObject = positionsOfObject.OrderByDescending(x => x.y).ToList();
-
-            ////DEBUG
-            //foreach (MapNode node in positionsOfObject)
-            //{
-            //    Console.WriteLine($"[{node.x},{node.y}] = {node.content}");
-            //}
-
             for (int i = 0; i < positionsOfObject.Count; i++)
             {
-                MapNode detectedNode = mapList.Find(n => n.x == positionsOfObject[i].x && n.y == positionsOfObject[i].y);
-
-                mapList.Find(n => n.x == positionsOfObject[i].x && n.y == positionsOfObject[i].y).content = '\0';
-                detectedNode.y++;
-                mapList.Find(n => n.x == detectedNode.x && n.y == detectedNode.y).content = '0';
+                if(DetectCollision(mapList, positionsOfObject[i]) == false)
+                {
+                    mapList.Find(n => n.x == positionsOfObject[i].x && n.y == positionsOfObject[i].y).content = '\0';
+                    int detectedY = (positionsOfObject[i].y) + 1;
+                    mapList.Find(n => n.x == positionsOfObject[i].x && n.y == detectedY).content = '0';
+                }
+                else
+                {
+                    foreach(MapNode obj in positionsOfObject)
+                    {
+                        obj.content = 'O';
+                    }
+                    break;
+                }
             }
 
             return mapList;
+        }
+        static bool DetectCollision(List<MapNode> mapList, MapNode positionOfObject)
+        {
+            int detectedPosition = (positionOfObject.y) + 1;
+            MapNode newNode = mapList.Find(n => n.x == positionOfObject.x && n.y == detectedPosition);
+            char detectedChar = newNode.content;
+
+            if(detectedChar == '#' || detectedChar == 'O')
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        static List<MapNode> DetectPositionOfObjects(List<MapNode> mapList)
+        {
+            List<MapNode> positionsOfObject = mapList.Where(x => x.content == '0').ToList();
+            positionsOfObject = positionsOfObject.OrderByDescending(x => x.y).ToList();
+            return positionsOfObject;
         }
 
         //UTILITY FUNCTIONS
