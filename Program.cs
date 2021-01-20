@@ -24,7 +24,7 @@ namespace Tetris
             while (input == "yes")
             {
                 ///TO DO LIST:
-                /// REFACTOR PLAYER MOVEMENT: It has not yet been optimalised for the refactor of Collision detection
+                /// 
                 /// 
 
                 List<MapNode> objectsPosition = DetectPositionOfObjects(map);
@@ -32,11 +32,25 @@ namespace Tetris
                 {
                     InitiateRandomObject(map, randomObjects);
                 }
-                ShowMap(map, score);
-                //playermovementOfTheObject(map, objectsPosition, DetectMovement());
-                Thread.Sleep(200);
-                map = AutomaticMovementOfTheObject(map, objectsPosition);
-                Console.Clear();
+                if (DetectCollision(map, objectsPosition, "down") == "down")
+                {
+                    foreach (MapNode node in objectsPosition)
+                    {
+                        node.content = 'O';
+                    }
+                }
+                if(objectsPosition.Count != 0)
+                {
+                    score = detectFullLine(map, score);
+                    ShowMap(map, score);
+                    playermovementOfTheObject(map, objectsPosition, DetectMovement());
+                    Console.Clear();
+                }
+                else
+                {
+                    Console.Clear();
+                }
+                //map = AutomaticMovementOfTheObject(map, objectsPosition);
             }
         }
 
@@ -63,7 +77,7 @@ namespace Tetris
             Console.WriteLine($"Current score: {score}");
             Console.WriteLine($"Highscore: {highscore}");
         }
-        static List<MapNode> InitiateRandomObject(List<MapNode> mapList, List<List<MapNode>> shapesList)
+        static void InitiateRandomObject(List<MapNode> mapList, List<List<MapNode>> shapesList)
         {
             var random = new Random();
             int index = random.Next(shapesList.Count);
@@ -72,13 +86,10 @@ namespace Tetris
             {
                 mapList.Find(n => n.x == selectedObject[i].x && n.y == selectedObject[i].y).content = selectedObject[i].content; 
             }
-
-            return mapList;
         }
-        static List<MapNode> AutomaticMovementOfTheObject(List<MapNode> mapList, List<MapNode> positionsOfObject)
+        static void AutomaticMovementOfTheObject(List<MapNode> mapList, List<MapNode> positionsOfObject)
         {
-            positionsOfObject = SortPositionsOfObjects(positionsOfObject, "down");
-            if (DetectCollision(mapList, positionsOfObject) == false)
+            if (DetectCollision(mapList, positionsOfObject, "down") != "down")
             {
                 for (int i = 0; i < positionsOfObject.Count; i++)
                 {
@@ -87,30 +98,58 @@ namespace Tetris
                     mapList.Find(n => n.x == positionsOfObject[i].x && n.y == detectedY).content = '0';
                 }
             }
-            else
-            {
-                foreach (MapNode obj in positionsOfObject)
-                {
-                    obj.content = 'O';
-                }
-            }
-
-            return mapList;
         }
-        static bool DetectCollision(List<MapNode> mapList, List<MapNode> positionsOfObject)
+        static string DetectCollision(List<MapNode> mapList, List<MapNode> positionsOfObject, string direction)
         {
-            bool determinant = false;
-            for(int i = 0; i < positionsOfObject.Count; i++)
+            string determinant = "";
+            switch (direction)
             {
-                int detectedY = (positionsOfObject[i].y) + 1;
-                MapNode newNode = mapList.Find(n => n.x == positionsOfObject[i].x && n.y == detectedY);
-                char detectedChar = newNode.content;
+                case "down":
+                    positionsOfObject = SortPositionsOfObjects(positionsOfObject, direction);
+                    for (int i = 0; i < positionsOfObject.Count; i++)
+                    {
+                        int detectedY = (positionsOfObject[i].y) + 1;
+                        MapNode newNodeY = mapList.Find(n => n.x == positionsOfObject[i].x && n.y == detectedY);
+                        char detectedCharY = newNodeY.content;
 
-                if (detectedChar == '#' || detectedChar == 'O')
-                {
-                    determinant = true;
+                        if (detectedCharY == '#' || detectedCharY == 'O')
+                        {
+                            determinant = "down";
+                            break;
+                        }
+                    }
                     break;
-                }
+                case "right":
+                    positionsOfObject = SortPositionsOfObjects(positionsOfObject, direction);
+                    for (int i = 0; i < positionsOfObject.Count; i++)
+                    {
+                        int detectedX1 = (positionsOfObject[i].x) + 1;
+                        MapNode newNodeX1 = mapList.Find(n => n.x == detectedX1 && n.y == positionsOfObject[i].y);
+                        char detectedCharX1 = newNodeX1.content;
+                        if (detectedCharX1 == '#' || detectedCharX1 == 'O')
+                        {
+                            determinant = "right";
+                            break;
+                        }
+
+                    }
+                    break;
+                case "left":
+                    positionsOfObject = SortPositionsOfObjects(positionsOfObject, direction);
+                    for (int i = 0; i < positionsOfObject.Count; i++)
+                    {
+
+                        int detectedX2 = (positionsOfObject[i].x) - 1;
+                        MapNode newNodeX2 = mapList.Find(n => n.x == detectedX2 && n.y == positionsOfObject[i].y);
+                        char detectedCharX2 = newNodeX2.content;
+
+                        if (detectedCharX2 == '#' || detectedCharX2 == 'O')
+                        {
+                            determinant = "left";
+                            break;
+                        }
+                    }
+                    break;
             }
             return determinant;
         }
@@ -150,61 +189,85 @@ namespace Tetris
                     return "";
             }
         }
-        static List<MapNode> playermovementOfTheObject(List<MapNode> mapList, List<MapNode> positionsOfObject, string direction)
+        static void playermovementOfTheObject(List<MapNode> mapList, List<MapNode> positionsOfObject, string direction)
         {
+            string collision = "";
             switch (direction)
             {
                 case "right":
-                    SortPositionsOfObjects(positionsOfObject, direction);
-                    for (int i = 0; i < positionsOfObject.Count; i++)
+                    positionsOfObject = SortPositionsOfObjects(positionsOfObject, direction);
+                    collision = DetectCollision(mapList, positionsOfObject, direction);
+                    if(collision != "right")
                     {
-                        int detectedX = (positionsOfObject[i].x) + 1;
-
-                        if (DetectCollision(mapList, positionsOfObject) == true)
+                        foreach(MapNode node in positionsOfObject)
                         {
-                            foreach (MapNode obj in positionsOfObject)
-                            {
-                                obj.content = 'O';
-                            }
-                            break;
-                        }
-                        else if (mapList.Find(n => n.x == detectedX && n.y == positionsOfObject[i].y).content != '#')
-                        {
-                            mapList.Find(n => n.x == positionsOfObject[i].x && n.y == positionsOfObject[i].y).content = '\0';
-                            mapList.Find(n => n.x == detectedX && n.y == positionsOfObject[i].y).content = '0';
+                            int nodeX = (node.x) + 1;
+                            mapList.Find(n => n.x == node.x && n.y == node.y ).content = '\0';
+                            mapList.Find(n => n.x == nodeX && n.y == node.y).content = '0';
                         }
                     }
                     break;
 
                 case "left":
-                    SortPositionsOfObjects(positionsOfObject, direction);
-                    for (int i = 0; i < positionsOfObject.Count; i++)
+                    positionsOfObject = SortPositionsOfObjects(positionsOfObject, direction);
+                    collision = DetectCollision(mapList, positionsOfObject, direction);
+                    if (collision != "left")
                     {
-                        int detectedX = (positionsOfObject[i].x) - 1;
-
-                        if (mapList.Find(n => n.x == detectedX && n.y == positionsOfObject[i].y).content != '#')
+                        foreach (MapNode node in positionsOfObject)
                         {
-                            mapList.Find(n => n.x == positionsOfObject[i].x && n.y == positionsOfObject[i].y).content = '\0';
-                            mapList.Find(n => n.x == detectedX && n.y == positionsOfObject[i].y).content = '0';
+                            int nodeX = (node.x) - 1;
+                            mapList.Find(n => n.x == node.x && n.y == node.y).content = '\0';
+                            mapList.Find(n => n.x == nodeX && n.y == node.y).content = '0';
                         }
                     }
                     break;
 
                 case "down":
-                    SortPositionsOfObjects(positionsOfObject, direction);
-                    for (int i = 0; i < positionsOfObject.Count; i++)
+                    positionsOfObject = SortPositionsOfObjects(positionsOfObject, direction);
+                    collision = DetectCollision(mapList, positionsOfObject, direction);
+                    if (collision != "down")
                     {
-                        int detectedY = (positionsOfObject[i].y) + 1;
-
-                        if (mapList.Find(n => n.x == positionsOfObject[i].x && n.y == detectedY).content != '#')
+                        foreach (MapNode node in positionsOfObject)
                         {
-                            mapList.Find(n => n.x == positionsOfObject[i].x && n.y == positionsOfObject[i].y).content = '\0';
-                            mapList.Find(n => n.x == positionsOfObject[i].x && n.y == detectedY).content = '0';
+                            int nodeY = (node.y) + 1;
+                            mapList.Find(n => n.x == node.x && n.y == node.y).content = '\0';
+                            mapList.Find(n => n.x == node.x && n.y == nodeY).content = '0';
                         }
                     }
                     break;
             }
-            return mapList;
+        }
+        static int detectFullLine(List<MapNode> mapList, int score)
+        {
+            List<List<MapNode>> linesList = createLines(mapList);
+            for (int indexOfLine = 0; indexOfLine < linesList.Count; indexOfLine++)
+            {
+                if(linesList[indexOfLine].All(n => n.content == 'O'))
+                {
+                    score += 100;
+                    foreach(MapNode node in linesList[indexOfLine])
+                    {
+                        mapList.Find(n => n.x == node.x && n.y == node.y).content = '\0';
+                    }
+                    for(int indexOfFullLine = indexOfLine; indexOfFullLine < linesList.Count; indexOfFullLine++)
+                    {
+                        if(linesList[indexOfFullLine].Any(n => n.content == 'O'))
+                        {
+                            foreach(MapNode obj in linesList[indexOfFullLine])
+                            {
+                                MapNode node = obj;
+                                int nodeY = (node.y) + 1;
+                                if(mapList.Find(n => n.x == node.x && n.y == nodeY).content != '#' && node.content == 'O')
+                                {
+                                    mapList.Find(n => n.x == node.x && n.y == node.y).content = '\0';
+                                    mapList.Find(n => n.x == node.x && n.y == nodeY).content = 'O';
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            return score;
         }
 
         //UTILITY FUNCTIONS
@@ -267,6 +330,20 @@ namespace Tetris
             randomShapesList.Add(shapeE);
 
             return randomShapesList;
+        }
+        static List<List<MapNode>> createLines(List<MapNode> mapList)
+        {
+            List<List<MapNode>> linesList = new List<List<MapNode>>();
+            for (int i = mapList.Max(n => n.y); i > 1; i--)
+            {
+                List<MapNode> line = new List<MapNode>();
+                for (int j = 1; j < mapList.Max(n => n.x); j++)
+                {
+                    line.Add(mapList.Find(n => n.x == j && n.y == i));
+                }
+                linesList.Add(line);
+            }
+            return linesList;
         }
     }
 }
